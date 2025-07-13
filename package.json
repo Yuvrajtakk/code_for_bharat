@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "npm install"
+    "build": "npm install",
+    "seed": "node scripts/seed.js"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -17,8 +18,15 @@
     "@ai-sdk/openai": "^0.0.42",
     "twilio": "^4.23.0"
   },
-  "keywords": ["government", "ai", "india", "schemes", "sms", "accessibility"],
-  "author": "Your Team",
+  "keywords": [
+    "government",
+    "ai",
+    "india",
+    "schemes",
+    "sms",
+    "accessibility"
+  ],
+  "author": "Yuvraj",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
