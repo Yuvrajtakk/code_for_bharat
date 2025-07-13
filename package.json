@@ -1,8 +1,26 @@
 {
-  "name": "my-v0-project",
-  "version": "0.1.0",
-  "private": true,
+  "name": "code-for-bharat",
+  "version": "1.0.0",
+  "description": "AI-powered government scheme information system for Indian citizens",
+  "main": "server.js",
   "scripts": {
-    "build": "echo 'no build script'"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "npm install"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "ai": "^3.0.0",
+    "@ai-sdk/openai": "^0.0.42",
+    "twilio": "^4.23.0"
+  },
+  "keywords": ["government", "ai", "india", "schemes", "sms", "accessibility"],
+  "author": "Your Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
