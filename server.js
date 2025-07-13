@@ -35,53 +35,65 @@ app.get("/", (req, res) => {
   res.json({ message: "Bharat Sanchar AI Backend is running!" })
 })
 
-// POST /ask endpoint
+// POST /ask endpoint with improved error handling
 app.post("/ask", async (req, res) => {
-  try {
-    const { query } = req.body
+  const { query } = req.body;
+  if (!query) {
+    return res.status(400).json({ error: "Query is required" });
+  }
 
-    if (!query) {
-      return res.status(400).json({ error: "Query is required" })
+  try {
+    let schemes;
+    // 1. Try to get data from the database
+    try {
+      schemes = await Scheme.find({
+        $or: [
+          { keywords: { $regex: query, $options: "i" } },
+          { scheme_name: { $regex: query, $options: "i" } },
+          { category: { $regex: query, $options: "i" } },
+        ],
+      }).limit(3);
+    } catch (dbError) {
+      console.error("Error querying database:", dbError);
+      // Don't expose detailed database errors to the client
+      return res.status(500).json({ error: "A database error occurred." });
     }
 
-    // Search for relevant schemes based on keywords
-    const schemes = await Scheme.find({
-      $or: [
-        { keywords: { $regex: query, $options: "i" } },
-        { scheme_name: { $regex: query, $options: "i" } },
-        { category: { $regex: query, $options: "i" } },
-        { eligibility: { $regex: query, $options: "i" } },
-        { benefits: { $regex: query, $options: "i" } },
-      ],
-    }).limit(3)
-
-    let contextInfo = ""
+    // 2. Prepare the context and prompts
+    let contextInfo = "";
     if (schemes.length > 0) {
       contextInfo = schemes
         .map(
           (scheme) =>
-            `योजना: ${scheme.scheme_name}\nश्रेणी: ${scheme.category}\nपात्रता: ${scheme.eligibility}\nलाभ: ${scheme.benefits}\nआवेदन कैसे करें: ${scheme.how_to_apply}`,
+            `Scheme: ${scheme.scheme_name}\nCategory: ${scheme.category}\nEligibility: ${scheme.eligibility}\nBenefits: ${scheme.benefits}\nHow to Apply: ${scheme.how_to_apply}`
         )
-        .join("\n\n")
+        .join("\n\n");
     }
 
-    // Generate AI response using OpenAI
-    const systemPrompt = `आप भारत संचार AI हैं, जो भारत सरकार की योजनाओं के बारे में हिंदी में जानकारी देते हैं। आपको उपयोगकर्ता के प्रश्न का उत्तर सरल और स्पष्ट हिंदी में देना है। यदि कोई विशिष्ट योजना की जानकारी उपलब्ध है, तो उसका उपयोग करें।`
+    const systemPrompt = `You are Bharat Sanchar AI, an assistant providing information about Indian government schemes in Hindi. Answer the user's question clearly and simply in Hindi. Use the provided context if available.`;
+    const userPrompt = `Question: ${query}\n\n${contextInfo ? `Related Schemes:\n${contextInfo}` : "No specific scheme found."}\n\nPlease answer this question in Hindi.`;
 
-    const userPrompt = `प्रश्न: ${query}\n\n${contextInfo ? `संबंधित योजनाएं:\n${contextInfo}` : "कोई विशिष्ट योजना नहीं मिली।"}\n\nकृपया इस प्रश्न का उत्तर हिंदी में दें।`
+    // 3. Try to generate a response from the AI
+    try {
+      const { text } = await generateText({
+        model: openai("gpt-3.5-turbo"),
+        system: systemPrompt,
+        prompt: userPrompt,
+      });
+      res.json({ answer: text });
+    } catch (aiError) {
+      console.error("Error generating AI response:", aiError);
+      // Provide a more specific error from the AI service
+      return res.status(500).json({ error: `AI service failed: ${aiError.message}` });
+    }
 
-    const { text } = await generateText({
-      model: openai("gpt-3.5-turbo"),
-      system: systemPrompt,
-      prompt: userPrompt,
-    })
-
-    res.json({ answer: text })
   } catch (error) {
-    console.error("Error in /ask endpoint:", error)
-    res.status(500).json({ error: "Internal server error" })
+    // This is a general catch-all for any other unexpected errors
+    console.error("An unexpected error occurred in /ask endpoint:", error);
+    res.status(500).json({ error: "An unexpected internal server error occurred." });
   }
-})
+});
+
 
 // POST /send-sms endpoint
 app.post("/send-sms", async (req, res) => {
