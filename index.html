@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bharat Sanchar AI - Voice Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans Devanagari', sans-serif;
+        }
+        
+        /* Typewriter Animation */
+        .typewriter {
+            overflow: hidden;
+            border-right: 3px solid #1a237e;
+            white-space: nowrap;
+            margin: 0 auto;
+            animation: typing 3s steps(20, end), blink-caret 0.75s step-end infinite;
+        }
+        
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: #1a237e }
+        }
+        
+        /* Fade in animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 1s ease-out forwards;
+        }
+        
+        .fade-in-delay-1 { animation-delay: 0.5s; }
+        .fade-in-delay-2 { animation-delay: 1s; }
+        .fade-in-delay-3 { animation-delay: 1.5s; }
+        .fade-in-delay-4 { animation-delay: 2s; }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Microphone glow animation */
+        .mic-glow {
+            box-shadow: 0 0 20px rgba(15, 157, 88, 0.5);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 20px rgba(15, 157, 88, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(15, 157, 88, 0.8); }
+            100% { box-shadow: 0 0 20px rgba(15, 157, 88, 0.5); }
+        }
+        
+        /* Listening animation */
+        .listening {
+            animation: listening-pulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes listening-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        /* Typing animation */
+        .typing-indicator {
+            display: inline-block;
+        }
+        
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #6b7280;
+            margin: 0 2px;
+            animation: typing-dots 1.4s infinite ease-in-out;
+        }
+        
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typing-dots {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        
+        /* Chat message animations */
+        .message-enter {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: messageEnter 0.3s ease-out forwards;
+        }
+        
+        @keyframes messageEnter {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Custom scrollbar */
+        .chat-area::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-area::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        .chat-area::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .chat-area::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-white min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header Section -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-6xl font-bold text-gray-800 mb-4 typewriter">
+                Bharat Sanchar AI
+            </h1>
+            <p class="text-lg md:text-xl text-gray-600 fade-in fade-in-delay-1">
+                Awaaz ke zariye Sarkar se Sanchar
+            </p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="space-y-8">
+            <!-- Microphone Section -->
+            <section class="text-center fade-in fade-in-delay-2">
+                <button 
+                    id="micButton" 
+                    class="mic-glow bg-green-600 hover:bg-green-700 text-white rounded-full p-8 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300"
+                    onclick="startListening()"
+                >
+                    <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+                <p class="mt-4 text-gray-600 font-medium">Speak Your Query</p>
+            </section>
+
+            <!-- Fallback Input Section -->
+            <section class="fade-in fade-in-delay-3">
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <label for="queryInput" class="block text-sm font-medium text-gray-700 mb-2">
+                        Or type your question:
+                    </label>
+                    <div class="flex gap-3">
+                        <input 
+                            type="text" 
+                            id="queryInput" 
+                            placeholder="Enter your query here..."
+                            class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        >
+                        <button 
+                            onclick="submitQuery()"
+                            class="bg-blue-800 hover:bg-blue-900 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
+                        >
+                            Submit
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chat Output Area -->
+            <section class="fade-in fade-in-delay-4">
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">AI Response</h3>
+                    <div id="chatArea" class="chat-area bg-white rounded-lg p-4 min-h-[200px] max-h-[400px] overflow-y-auto border">
+                        <div class="text-gray-500 text-center py-8">
+                            Ask a question to get started...
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SMS Section -->
+            <section class="fade-in fade-in-delay-4">
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Send Response via SMS</h3>
+                    <div class="flex gap-3">
+                        <input 
+                            type="tel" 
+                            id="phoneInput" 
+                            placeholder="Enter phone number (+91XXXXXXXXXX)"
+                            class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                        >
+                        <button 
+                            onclick="sendSMS()"
+                            class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300"
+                        >
+                            Send via SMS
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        let isListening = false;
+        let recognition = null;
+        let lastResponse = '';
+
+        // Initialize Speech Recognition
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'hi-IN'; // Hindi language
+        }
+
+        function startListening() {
+            if (!recognition) {
+                alert('Speech recognition not supported in this browser');
+                return;
+            }
+
+            const micButton = document.getElementById('micButton');
+            
+            if (isListening) {
+                recognition.stop();
+                return;
+            }
+
+            isListening = true;
+            micButton.classList.add('listening');
+            micButton.style.backgroundColor = '#dc2626'; // Red color when listening
+            
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('queryInput').value = transcript;
+                submitQuery();
+            };
+
+            recognition.onend = function() {
+                isListening = false;
+                micButton.classList.remove('listening');
+                micButton.style.backgroundColor = '#059669'; // Back to green
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                isListening = false;
+                micButton.classList.remove('listening');
+                micButton.style.backgroundColor = '#059669';
+                alert('Speech recognition error. Please try again.');
+            };
+        }
+
+        async function submitQuery() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) {
+                alert('Please enter a query');
+                return;
+            }
+
+            const chatArea = document.getElementById('chatArea');
+            
+            // Clear initial message if present
+            if (chatArea.children.length === 1 && chatArea.children[0].classList.contains('text-gray-500')) {
+                chatArea.innerHTML = '';
+            }
+
+            // Add user message
+            addMessage('user', query);
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+
+                const data = await response.json();
+                
+                // Remove typing indicator
+                removeTypingIndicator();
+                
+                // Add AI response with typing animation
+                lastResponse = data.response || 'Sorry, I could not process your request.';
+                addMessage('ai', lastResponse);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                removeTypingIndicator();
+                addMessage('ai', 'Sorry, there was an error processing your request. Please try again.');
+            }
+
+            // Clear input
+            document.getElementById('queryInput').value = '';
+        }
+
+        function addMessage(sender, message) {
+            const chatArea = document.getElementById('chatArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message-enter mb-4 ${sender === 'user' ? 'text-right' : 'text-left'}`;
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = `inline-block max-w-[80%] p-3 rounded-lg ${
+                sender === 'user' 
+                    ? 'bg-blue-800 text-white' 
+                    : 'bg-gray-200 text-gray-800'
+            }`;
+            
+            if (sender === 'ai') {
+                // Create container for AI message with speaker icon
+                const aiContainer = document.createElement('div');
+                aiContainer.className = 'flex items-start gap-2';
+                
+                messageContent.textContent = message;
+                aiContainer.appendChild(messageContent);
+                
+                // Add speaker icon
+                const speakerButton = document.createElement('button');
+                speakerButton.className = 'mt-1 p-2 text-gray-600 hover:text-blue-600 transition-colors duration-200';
+                speakerButton.innerHTML = `
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.816L4.846 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.846l3.537-3.816a1 1 0 011.617.816zM16 8a2 2 0 11-4 0 2 2 0 014 0z" clip-rule="evenodd"></path>
+                    </svg>
+                `;
+                speakerButton.onclick = () => speakText(message);
+                aiContainer.appendChild(speakerButton);
+                
+                messageDiv.appendChild(aiContainer);
+            } else {
+                messageContent.textContent = message;
+                messageDiv.appendChild(messageContent);
+            }
+            
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const chatArea = document.getElementById('chatArea');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typingIndicator';
+            typingDiv.className = 'mb-4 text-left';
+            typingDiv.innerHTML = `
+                <div class="inline-block bg-gray-200 text-gray-800 p-3 rounded-lg">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            chatArea.appendChild(typingDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                // Stop any ongoing speech
+                speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'hi-IN'; // Hindi language
+                utterance.rate = 0.8;
+                utterance.pitch = 1;
+                
+                speechSynthesis.speak(utterance);
+            } else {
+                alert('Text-to-speech not supported in this browser');
+            }
+        }
+
+        async function sendSMS() {
+            const phoneNumber = document.getElementById('phoneInput').value.trim();
+            
+            if (!phoneNumber) {
+                alert('Please enter a phone number');
+                return;
+            }
+
+            if (!lastResponse) {
+                alert('No response to send. Please ask a question first.');
+                return;
+            }
+
+            // Basic phone number validation
+            const phoneRegex = /^\+91[6-9]\d{9}$/;
+            if (!phoneRegex.test(phoneNumber)) {
+                alert('Please enter a valid Indian phone number (+91XXXXXXXXXX)');
+                return;
+            }
+
+            try {
+                const response = await fetch('/send-sms', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        phoneNumber: phoneNumber,
+                        message: lastResponse 
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('SMS sent successfully!');
+                    document.getElementById('phoneInput').value = '';
+                } else {
+                    alert('Failed to send SMS: ' + (data.error || 'Unknown error'));
+                }
+                
+            } catch (error) {
+                console.error('Error sending SMS:', error);
+                alert('Error sending SMS. Please try again.');
+            }
+        }
+
+        // Handle Enter key press in input fields
+        document.getElementById('queryInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                submitQuery();
+            }
+        });
+
+        document.getElementById('phoneInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendSMS();
+            }
+        });
+
+        // Add some demo functionality for testing without backend
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            // Override fetch for demo purposes
+            const originalFetch = window.fetch;
+            window.fetch = async function(url, options) {
+                if (url === '/ask') {
+                    // Simulate API delay
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            response: "यह एक डेमो रिस्पॉन्स है। आपका प्रश्न प्राप्त हुआ है और हमारी AI टीम इसका उत्तर तैयार कर रही है।"
+                        })
+                    };
+                } else if (url === '/send-sms') {
+                    // Simulate SMS API delay
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return {
+                        ok: true,
+                        json: async () => ({ success: true })
+                    };
+                }
+                return originalFetch(url, options);
+            };
+        }
+    </script>
+</body>
+</html>
