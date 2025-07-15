@@ -3,7 +3,7 @@ const mongoose = require("mongoose")
 const cors = require("cors")
 const dotenv = require("dotenv")
 const { generateText } = require("ai")
-const { openai } = require("@ai-sdk/openai")
+const { google } = require("@ai-sdk/google")
 const twilio = require("twilio")
 const Scheme = require("./models/Scheme")
 
@@ -76,7 +76,7 @@ app.post("/ask", async (req, res) => {
     // 3. Try to generate a response from the AI
     try {
       const { text } = await generateText({
-        model: openai("gpt-3.5-turbo"),
+        model: google("gemini-pro"),
         system: systemPrompt,
         prompt: userPrompt,
       });
