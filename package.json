@@ -1,23 +1,23 @@
 {
-  "name": "code-for-bharat",
+  "name": "bharat-sanchar-ai-backend",
   "version": "1.0.0",
   "description": "AI-powered government scheme information system for Indian citizens",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "npm install",
-    "seed": "node scripts/seed.js"
+    "build": "npm install --omit=dev",
+    "seed": "node scripts/seedDatabase.js"
   },
   "dependencies": {
-    "@ai-sdk/google": "^0.0.3",
-    "@ai-sdk/openai": "^3.0.48",
-    "ai": "^3.4.33",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
-    "express": "^4.18.2",
-    "mongoose": "^7.0.0",
-    "twilio": "^4.23.0"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.4.0",
+    "twilio": "^5.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0 <21.0.0"
   },
   "keywords": [
     "government",
@@ -28,8 +28,5 @@
     "accessibility"
   ],
   "author": "Yuvraj",
-  "license": "MIT",
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "license": "MIT"
 }
