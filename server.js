@@ -1,11 +1,11 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const { generateText } = require("ai");
-const { openai } = require("@ai-sdk/openai");
-const twilio = require("twilio");
-const Scheme = require("./models/Scheme");
+const express = require("express")
+const mongoose = require("mongoose")
+const cors = require("cors")
+const dotenv = require("dotenv")
+const { generateText } = require("ai")
+const { openai } = require("@ai-sdk/openai")
+const twilio = require("twilio")
+const Scheme = require("./models/Scheme")
 
 dotenv.config();
 
@@ -99,14 +99,20 @@ How to Apply: ${s.how_to_apply}`
     const systemPrompt = `You are Bharat Sanchar AI. Answer in simple Hindi.`;
     const userPrompt = `Question: ${query}\n\n${contextInfo}`;
 
-    // AI response
-    const { text } = await generateText({
-      model: openai("gpt-3.5-turbo"),
-      system: systemPrompt,
-      prompt: userPrompt,
-    });
+    // 3. Try to generate a response from the AI
+    try {
+      const { text } = await generateText({
+        model: openai("gpt-3.5-turbo"),
+        system: systemPrompt,
+        prompt: userPrompt,
+      });
+      res.json({ answer: text });
+    } catch (aiError) {
+      console.error("Error generating AI response:", aiError);
+      // Provide a more specific error from the AI service
+      return res.status(500).json({ error: `AI service failed: ${aiError.message}` });
+    }
 
-    res.json({ answer: text });
   } catch (error) {
     console.error("❌ /ask error:", error);
     res.status(500).json({ error: "Internal server error" });
