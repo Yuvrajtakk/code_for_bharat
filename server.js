@@ -1,137 +1,164 @@
-const express = require("express")
-const mongoose = require("mongoose")
-const cors = require("cors")
-const dotenv = require("dotenv")
-const { generateText } = require("ai")
-const { openai } = require("@ai-sdk/openai")
-const twilio = require("twilio")
-const Scheme = require("./models/Scheme")
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const dotenv = require("dotenv");
+const { generateText } = require("ai");
+const { openai } = require("@ai-sdk/openai");
+const twilio = require("twilio");
+const Scheme = require("./models/Scheme");
 
-dotenv.config()
+dotenv.config();
 
-const app = express()
-const PORT = process.env.PORT || 5000
+const app = express();
+
+// ✅ IMPORTANT for Render
+const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors())
-app.use(express.json())
+app.use(cors());
+app.use(express.json());
 
-// MongoDB Connection
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("MongoDB connected to bharat_sanchar_ai database"))
-  .catch((err) => console.error("MongoDB connection error:", err))
+// =======================
+// MongoDB Connection (SAFE)
+// =======================
+if (!process.env.MONGODB_URI) {
+  console.warn("⚠️ No MongoDB URI provided");
+} else {
+  mongoose
+    .connect(process.env.MONGODB_URI)
+    .then(() => console.log("✅ MongoDB connected"))
+    .catch((err) => console.error("❌ MongoDB error:", err));
+}
 
-// Twilio Client
-const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN)
+// =======================
+// Twilio (SAFE INIT)
+// =======================
+let twilioClient = null;
 
-// Routes
+if (process.env.TWILIO_SID && process.env.TWILIO_TOKEN) {
+  twilioClient = twilio(
+    process.env.TWILIO_SID,
+    process.env.TWILIO_TOKEN
+  );
+} else {
+  console.warn("⚠️ Twilio not configured");
+}
 
-// Health check endpoint
+// =======================
+// ROUTES
+// =======================
+
+// Health check
 app.get("/", (req, res) => {
-  res.json({ message: "Bharat Sanchar AI Backend is running!" })
-})
+  res.json({ message: "Bharat Sanchar AI Backend is running 🚀" });
+});
 
-// POST /ask endpoint with improved error handling
+// =======================
+// ASK ROUTE
+// =======================
 app.post("/ask", async (req, res) => {
   const { query } = req.body;
+
   if (!query) {
     return res.status(400).json({ error: "Query is required" });
   }
 
   try {
-    let schemes;
-    // 1. Try to get data from the database
+    let schemes = [];
+
+    // DB fetch (safe)
     try {
-      schemes = await Scheme.find({
-        $or: [
-          { keywords: { $regex: query, $options: "i" } },
-          { scheme_name: { $regex: query, $options: "i" } },
-          { category: { $regex: query, $options: "i" } },
-        ],
-      }).limit(3);
+      if (mongoose.connection.readyState === 1) {
+        schemes = await Scheme.find({
+          $or: [
+            { keywords: { $regex: query, $options: "i" } },
+            { scheme_name: { $regex: query, $options: "i" } },
+            { category: { $regex: query, $options: "i" } },
+          ],
+        }).limit(3);
+      }
     } catch (dbError) {
-      console.error("Error querying database:", dbError);
-      // Don't expose detailed database errors to the client
-      return res.status(500).json({ error: "A database error occurred." });
+      console.error("DB error:", dbError);
     }
 
-    // 2. Prepare the context and prompts
-    let contextInfo = "";
-    if (schemes.length > 0) {
-      contextInfo = schemes
-        .map(
-          (scheme) =>
-            `Scheme: ${scheme.scheme_name}\nCategory: ${scheme.category}\nEligibility: ${scheme.eligibility}\nBenefits: ${scheme.benefits}\nHow to Apply: ${scheme.how_to_apply}`
-        )
-        .join("\n\n");
-    }
+    // Context
+    const contextInfo =
+      schemes.length > 0
+        ? schemes
+            .map(
+              (s) =>
+                `Scheme: ${s.scheme_name}
+Category: ${s.category}
+Eligibility: ${s.eligibility}
+Benefits: ${s.benefits}
+How to Apply: ${s.how_to_apply}`
+            )
+            .join("\n\n")
+        : "No specific scheme found.";
 
-    const systemPrompt = `You are Bharat Sanchar AI, an assistant providing information about Indian government schemes in Hindi. Answer the user's question clearly and simply in Hindi. Use the provided context if available.`;
-    const userPrompt = `Question: ${query}\n\n${contextInfo ? `Related Schemes:\n${contextInfo}` : "No specific scheme found."}\n\nPlease answer this question in Hindi.`;
+    const systemPrompt = `You are Bharat Sanchar AI. Answer in simple Hindi.`;
+    const userPrompt = `Question: ${query}\n\n${contextInfo}`;
 
-    // 3. Try to generate a response from the AI
-    try {
-      const { text } = await generateText({
-        model: openai("gpt-3.5-turbo"),
-        system: systemPrompt,
-        prompt: userPrompt,
-      });
-      res.json({ answer: text });
-    } catch (aiError) {
-      console.error("Error generating AI response:", aiError);
-      // Provide a more specific error from the AI service
-      return res.status(500).json({ error: `AI service failed: ${aiError.message}` });
-    }
+    // AI response
+    const { text } = await generateText({
+      model: openai("gpt-3.5-turbo"),
+      system: systemPrompt,
+      prompt: userPrompt,
+    });
 
+    res.json({ answer: text });
   } catch (error) {
-    // This is a general catch-all for any other unexpected errors
-    console.error("An unexpected error occurred in /ask endpoint:", error);
-    res.status(500).json({ error: "An unexpected internal server error occurred." });
+    console.error("❌ /ask error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
-
-// POST /send-sms endpoint
+// =======================
+// SMS ROUTE
+// =======================
 app.post("/send-sms", async (req, res) => {
+  if (!twilioClient) {
+    return res.status(500).json({ error: "Twilio not configured" });
+  }
+
   try {
-    const { phone, message } = req.body
+    const { phone, message } = req.body;
 
     if (!phone || !message) {
-      return res.status(400).json({ error: "Phone and message are required" })
+      return res.status(400).json({ error: "Phone & message required" });
     }
 
-    // Send SMS using Twilio
     await twilioClient.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE,
       to: phone,
-    })
+    });
 
-    res.json({ message: "SMS sent" })
+    res.json({ message: "SMS sent ✅" });
   } catch (error) {
-    console.error("Error sending SMS:", error)
-    res.status(500).json({ error: "Failed to send SMS" })
+    console.error("SMS error:", error);
+    res.status(500).json({ error: "Failed to send SMS" });
   }
-})
+});
 
-// Get all schemes endpoint (for testing)
+// =======================
+// GET SCHEMES
+// =======================
 app.get("/schemes", async (req, res) => {
   try {
-    const schemes = await Scheme.find()
-    res.json(schemes)
+    const schemes = await Scheme.find();
+    res.json(schemes);
   } catch (error) {
-    console.error("Error fetching schemes:", error)
-    res.status(500).json({ error: "Internal server error" })
+    console.error("Fetch error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-})
+});
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`)
-})
+// =======================
+// START SERVER
+// =======================
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
 
-module.exports = app
+module.exports = app;
